@@ -60,9 +60,9 @@ function LogoIcon() {
                     <stop offset="100%" stopColor="#8134AF" />
                 </linearGradient>
             </defs>
-            <rect x="1" y="1" width="26" height="26" rx="8" stroke="url(#lg)" strokeWidth="2" fill="none" />
-            <circle cx="14" cy="14" r="6" stroke="url(#lg)" strokeWidth="2" fill="none" />
-            <circle cx="20.5" cy="7.5" r="1.5" fill="url(#lg)" />
+            <circle cx="14" cy="14" r="12" stroke="url(#lg)" strokeWidth="2" fill="none" />
+            <path d="M14 8L10 14L14 20L18 14Z" stroke="url(#lg)" strokeWidth="2" fill="none" strokeLinejoin="round" />
+            <circle cx="14" cy="14" r="2.5" fill="url(#lg)" />
         </svg>
     );
 }
