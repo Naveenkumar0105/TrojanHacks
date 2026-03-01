@@ -417,6 +417,7 @@ export default function App() {
     // New states for Recommendations feature
     const [recommendations, setRecommendations] = useState(null);
     const [loadingRecs, setLoadingRecs] = useState(false);
+    const [refining, setRefining] = useState(false); // Controls the AI refinement loop
 
     const abortRef = useRef(null);
 
@@ -425,6 +426,7 @@ export default function App() {
     async function generate() {
         setLoading(true);
         setResult(null);
+        setRecommendations(null); // Clear previous recommendations
         setStatus('AI is brainstorming your reel...', 'loading');
         setStatusType('loading');
 
@@ -450,6 +452,7 @@ export default function App() {
                 imageUrl: data.image_url,
                 scores: finalScores,
                 presaige_asset_key: data.presaige_asset_key || null,
+                thumbnail_prompt: data.thumbnail_prompt
             });
             setStatus(data.scores ? 'Reel Successfully Optimized! ✨' : 'Reel generated! (Presaige scoring unavailable)', 'success');
             setStatusType('success');
@@ -511,6 +514,52 @@ export default function App() {
             setStatus('Failed to fetch recommendations: ' + err.message, 'error');
         } finally {
             setLoadingRecs(false);
+        }
+    }
+
+    async function refineThumbnail() {
+        if (!result || !recommendations) return;
+        setRefining(true);
+        setStatus('AI is auto-refining the thumbnail based on feedback...', 'loading');
+        setStatusType('loading');
+
+        try {
+            const res = await fetch('/api/refine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idea,
+                    location,
+                    audience,
+                    recommendations,
+                    original_prompt: result.thumbnail_prompt
+                })
+            });
+
+            if (!res.ok) {
+                throw new Error(`Refinement failed: ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            // Update the existing result object with the new image and new scores
+            setResult(prev => ({
+                ...prev,
+                imageUrl: data.image_url,
+                presaige_asset_key: data.presaige_asset_key,
+                scores: data.scores || prev.scores
+            }));
+
+            // Clear recommendations so the loop can start fresh if the new score is still under 9
+            setRecommendations(null);
+            setStatus('✨ Thumbnail Refined! New image & scores generated.', 'success');
+            setStatusType('success');
+
+        } catch (err) {
+            setStatus('Failed to refine thumbnail: ' + err.message, 'error');
+            setStatusType('error');
+        } finally {
+            setRefining(false);
         }
     }
 
@@ -801,6 +850,34 @@ export default function App() {
                                                         ))}
                                                     </ul>
                                                 </motion.div>
+                                            )}
+
+                                            {/* AUTO-REFINE THUMBNAIL BUTTON */}
+                                            {recommendations && recommendations.length > 0 && (
+                                                <motion.button
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.2 }}
+                                                    onClick={refineThumbnail}
+                                                    disabled={refining}
+                                                    style={{
+                                                        width: '100%', padding: '12px', marginTop: 10,
+                                                        background: 'linear-gradient(135deg, #F58529, #DD2A7B)',
+                                                        color: 'white', border: 'none', borderRadius: 10,
+                                                        fontSize: 13, fontWeight: 800, cursor: refining ? 'not-allowed' : 'pointer',
+                                                        opacity: refining ? 0.7 : 1, transition: 'all 0.2s',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                                                    }}
+                                                >
+                                                    {refining ? (
+                                                        <>
+                                                            <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>⟳</motion.span>
+                                                            Refining Image...
+                                                        </>
+                                                    ) : (
+                                                        '✨ Auto-Refine Thumbnail'
+                                                    )}
+                                                </motion.button>
                                             )}
                                         </div>
                                     );

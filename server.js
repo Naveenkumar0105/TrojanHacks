@@ -523,7 +523,222 @@ app.post('/api/get-recommendations', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// ── NEW ENDPOINT: Refine Thumbnail based on AI Recommendations ─────────
+app.post('/api/refine', async (req, res) => {
+    try {
+        const { idea, location, audience, recommendations, original_prompt } = req.body;
+        const presaigeKey = process.env.PRESAIGE_KEY;
 
+        console.log('🔄 Initating AI Thumbnail Refinement Pipeline...');
+
+        // ── STEP A: Ask Gemini to rewrite the prompt using the recommendations ──
+        const systemInstruction = `You are an expert graphic designer and AI prompt engineer specializing in creating viral, high-scoring YouTube/Instagram reel thumbnails.
+Your task is to take a pre-existing image generation prompt and UPGRADE it based on an AI critic's recommendations.
+
+ORIGINAL CORE CONSTRAINTS:
+- Reel Idea: ${idea}
+- Location/Vibe: ${location}
+
+THE ORIGINAL PROMPT (Which generated a slightly flawed image):
+"${original_prompt || "N/A"}"
+
+CRITIC'S RECOMMENDATIONS TO FIX:
+${recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+INSTRUCTIONS:
+1. Heavily base your new prompt on the "ORIGINAL PROMPT" to preserve what already worked.
+2. Inject and modify the prompt to aggressively apply the "CRITIC'S RECOMMENDATIONS". 
+3. If the critic asks for more contrast, better lighting, or specific layout changes, explicitly write those instructions into the new prompt.
+4. Add powerful aesthetic keywords to guarantee a high-quality render: "masterpiece, 4k resolution, cinematic lighting, highly detailed, vibrant colors, eye-catching, high contrast, perfect composition, professional photography style".
+5. Format the output strictly as a single, highly descriptive prompt string for an AI image generator (like Midjourney or Flux). No quotes, no markdown wrappers, no introductory text, no JSON. Max 600 characters.`;
+
+        let optimizedPrompt = '';
+        let promptSuccess = false;
+
+        // Try using Gemini to rewrite the prompt
+        if (geminiClients.length > 0) {
+            for (const client of geminiClients) {
+                try {
+                    const llmResponse = await client.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: `Rewrite the image generation prompt to fix the flaws.`,
+                        config: { systemInstruction }
+                    });
+                    optimizedPrompt = llmResponse.text.trim();
+                    promptSuccess = true;
+                    console.log('✅ Gemini Rewrote Prompt:', optimizedPrompt);
+                    break;
+                } catch (e) {
+                    console.warn('⚠️ Gemini prompt rewrite failed, trying next key...', e.message);
+                }
+            }
+        }
+
+        if (!promptSuccess) {
+            return res.status(500).json({ error: 'Failed to rewrite prompt using Gemini' });
+        }
+
+        // ── STEP B: Generate the new Image ──────────────────────────────────────
+        let imageGenSuccess = false;
+        let imageBuffer = null;
+        let imageUrl = '';
+
+        // Attempt 1: FLUX.1-schnell via HuggingFace (PRIMARY — fast, high quality, authenticated)
+        if (HF_TOKEN && !imageGenSuccess) {
+            try {
+                console.log('🎨 Generating refined thumbnail with FLUX.1-schnell...');
+                const fluxRes = await fetch(
+                    'https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${HF_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            inputs: optimizedPrompt.substring(0, 500),
+                            parameters: { width: 800, height: 450 }
+                        }),
+                        signal: AbortSignal.timeout(45000)
+                    }
+                );
+                if (fluxRes.ok && fluxRes.headers.get('content-type')?.includes('image')) {
+                    imageBuffer = Buffer.from(await fluxRes.arrayBuffer());
+                    imageUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+                    imageGenSuccess = true;
+                    console.log('✅ FLUX.1-schnell refined thumbnail generated!');
+                } else {
+                    console.warn('⚠️ FLUX.1-schnell refined returned:', fluxRes.status);
+                }
+            } catch (e) { console.warn('⚠️ FLUX.1-schnell refined failed:', e.message?.slice(0, 50)); }
+        }
+
+        // Attempt 2: Pollinations.ai (re-try)
+        if (!imageGenSuccess) {
+            try {
+                const encodedPrompt = encodeURIComponent(optimizedPrompt.substring(0, 400));
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true&model=flux`;
+                const polRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(20000) });
+                if (polRes.ok && polRes.headers.get('content-type')?.includes('image')) {
+                    imageBuffer = Buffer.from(await polRes.arrayBuffer());
+                    imageUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+                    imageGenSuccess = true;
+                    console.log('✅ Pollinations refined thumbnail generated');
+                }
+            } catch (e) {
+                console.warn('⚠️ Pollinations refined failed:', e.message?.slice(0, 50));
+            }
+        }
+
+        // Attempt 3: HuggingFace Router SDXL
+        if (!imageGenSuccess) {
+            try {
+                const hfRes = await fetch(
+                    'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ inputs: optimizedPrompt.substring(0, 500) }),
+                        signal: AbortSignal.timeout(30000)
+                    }
+                );
+                if (hfRes.ok && hfRes.headers.get('content-type')?.includes('image')) {
+                    imageBuffer = Buffer.from(await hfRes.arrayBuffer());
+                    imageUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+                    imageGenSuccess = true;
+                    console.log('✅ Refined image generated via SDXL');
+                }
+            } catch (e) { console.warn('⚠️ HuggingFace refined gen failed', e.message?.slice(0, 50)); }
+        }
+
+        // Attempt 4: Placeholder (ABSOLUTE LAST RESORT)
+        if (!imageGenSuccess) {
+            console.warn('⚠️ All image generators failed for refinement. Using Picsum fallback.');
+            const picsumRes = await fetch(`https://picsum.photos/seed/${Date.now()}/800/450`);
+            imageBuffer = Buffer.from(await picsumRes.arrayBuffer());
+            console.log('✅ Refined image used placeholder');
+        }
+
+        // ── STEP C: Save Locally & Upload to Presaige ──────────────────────────
+        let ext = 'jpg';
+        if (imageBuffer.length > 3 && imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47) ext = 'png';
+        else if (imageBuffer.length > 3 && imageBuffer[0] === 0x52 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x46 && imageBuffer[3] === 0x46) ext = 'webp';
+
+        const filename = `refined_${Date.now()}.${ext}`;
+        const filepath = path.join(__dirname, 'public/thumbnails', filename);
+        fs.writeFileSync(filepath, imageBuffer);
+        imageUrl = `/thumbnails/${filename}`;
+
+        let presaigeAssetKey = null;
+        let newScores = null;
+
+        if (presaigeKey) {
+            try {
+                const pRes = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    headers: { 'x-api-key': presaigeKey, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, content_type: 'image/jpeg' })
+                });
+                const pData = await pRes.json();
+
+                if (pData.upload_url && pData.asset_key) {
+                    const s3Res = await fetch(pData.upload_url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'image/jpeg' },
+                        body: imageBuffer
+                    });
+                    if (s3Res.ok) {
+                        presaigeAssetKey = pData.asset_key;
+
+                        // Submit Score Job
+                        const jobRes = await fetch(`${API_BASE}/score`, {
+                            method: 'POST',
+                            headers: { 'x-api-key': presaigeKey, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ asset_key: presaigeAssetKey, score_type: 'detailed' })
+                        });
+                        const jobData = await jobRes.json();
+                        const jobId = jobData.job_id;
+
+                        if (jobId) {
+                            let attempts = 0;
+                            while (attempts < 20) {
+                                await new Promise(r => setTimeout(r, 3000));
+                                const pollRes = await fetch(`${API_BASE}/score/${jobId}`, {
+                                    headers: { 'x-api-key': presaigeKey }
+                                });
+                                const pollData = await pollRes.json();
+                                if (pollData.status === 'complete') {
+                                    const flattenScores = (obj) => {
+                                        let result = {};
+                                        for (const k in obj) {
+                                            if (typeof obj[k] === 'object' && obj[k] !== null) Object.assign(result, flattenScores(obj[k]));
+                                            else if (typeof obj[k] === 'number') result[k] = obj[k];
+                                        }
+                                        return result;
+                                    };
+                                    newScores = flattenScores(pollData.scores);
+                                    break;
+                                }
+                                attempts++;
+                            }
+                        }
+                    }
+                }
+            } catch (err) { console.warn('⚠️ Refined scoring failed:', err.message); }
+        }
+
+        res.json({
+            thumbnail_prompt: optimizedPrompt,
+            image_url: imageUrl,
+            presaige_asset_key: presaigeAssetKey,
+            scores: newScores,
+        });
+
+    } catch (error) {
+        console.error('Refine Endpoint Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 app.listen(port, () => {
     console.log(`Backend proxy server listening at http://localhost:${port}`);
 });
