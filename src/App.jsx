@@ -280,23 +280,24 @@ function ReelPhonePreview({ imageUrl, loading }) {
             <div style={{
                 background: '#1a1a1a',
                 border: '2px solid #2a2a2a',
-                borderRadius: 36,
-                padding: '12px 8px',
+                borderRadius: 28,
+                padding: '6px 6px',
                 boxShadow: '0 30px 80px rgba(0,0,0,0.8)',
             }}>
-                {/* Notch */}
-                <div style={{
-                    width: 60, height: 6, background: '#2a2a2a',
-                    borderRadius: 99, margin: '0 auto 10px',
-                }} />
                 {/* Screen */}
                 <div style={{
-                    borderRadius: 24,
+                    borderRadius: 32,
                     overflow: 'hidden',
                     aspectRatio: '9/16',
                     background: '#0d0d0d',
                     position: 'relative',
                 }}>
+                    {/* Dynamic Island */}
+                    <div style={{
+                        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+                        width: 80, height: 26, background: '#000', borderRadius: 99, zIndex: 50,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                    }} />
                     {loading ? (
                         <div style={{
                             width: '100%', height: '100%',
@@ -331,32 +332,10 @@ function ReelPhonePreview({ imageUrl, loading }) {
                             display: 'flex', flexDirection: 'column',
                             alignItems: 'center', justifyContent: 'center', gap: 8, color: '#333',
                         }}>
-                            <span style={{ fontSize: 28 }}>🎬</span>
-                            <span style={{ fontSize: 11 }}>Your reel thumbnail</span>
+                            <span style={{ fontSize: 28 }}>🖼️</span>
+                            <span style={{ fontSize: 11 }}>Your stunning thumbnail</span>
                             <span style={{ fontSize: 10, color: '#222' }}>will appear here</span>
                         </div>
-                    )}
-                    {/* Reel UI overlay */}
-                    {imageUrl && !loading && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                            style={{
-                                position: 'absolute', bottom: 0, left: 0, right: 0,
-                                padding: '40px 10px 10px',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-                            }}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', flexDirection: 'column', gap: 6 }}>
-                                <div style={{ fontSize: 10, fontWeight: 600, color: '#fff' }}>AI Generated Reel</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    {['❤️', '💬', '📤'].map(icon => (
-                                        <span key={icon} style={{ fontSize: 14 }}>{icon}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        </motion.div>
                     )}
                 </div>
                 {/* Home indicator */}
@@ -427,7 +406,7 @@ export default function App() {
         setLoading(true);
         setResult(null);
         setRecommendations(null); // Clear previous recommendations
-        setStatus('AI is brainstorming your reel...', 'loading');
+        setStatus('AI is brainstorming your thumbnail...', 'loading');
         setStatusType('loading');
 
         try {
@@ -454,7 +433,7 @@ export default function App() {
                 presaige_asset_key: data.presaige_asset_key || null,
                 thumbnail_prompt: data.thumbnail_prompt
             });
-            setStatus(data.scores ? 'Reel Successfully Optimized! ✨' : 'Reel generated! (Presaige scoring unavailable)', 'success');
+            setStatus(data.scores ? 'Thumbnail Successfully Optimized! ✨' : 'Thumbnail generated! (Presaige scoring unavailable)', 'success');
             setStatusType('success');
             setRecommendations(null); // Reset recs on new generation
         } catch (err) {
@@ -590,23 +569,18 @@ export default function App() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <LogoIcon />
-                    <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                        Reel<GradientText>AI</GradientText>
+                    <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>
+                        vibe<GradientText>Architect</GradientText>
                     </span>
-                    <span style={{
-                        marginLeft: 4, fontSize: 10, padding: '2px 8px',
-                        background: 'rgba(245,133,41,0.1)', border: '1px solid rgba(245,133,41,0.3)',
-                        borderRadius: 99, color: '#F58529', fontWeight: 600, letterSpacing: '0.06em',
-                    }}>PRO</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <span style={{ fontSize: 12, color: '#444' }}>TrojanHacks 2026</span>
                     <div style={{
                         width: 30, height: 30, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #F58529, #DD2A7B)',
+                        background: 'linear-gradient(135deg, #990000, #FFCC00)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 13,
-                    }}>🎬</div>
+                    }}>✌️</div>
                 </div>
             </header>
 
@@ -628,12 +602,12 @@ export default function App() {
                     overflowY: 'auto',
                 }}>
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f5f5f5', marginBottom: 2 }}>Reel Brief</div>
-                        <div style={{ fontSize: 11, color: '#444' }}>Tell the AI about your next reel</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f5f5f5', marginBottom: 2 }}>Thumbnail Brief</div>
+                        <div style={{ fontSize: 11, color: '#444' }}>Tell the AI about your next thumbnail</div>
                     </div>
 
                     <InputField
-                        label="What's the reel about?"
+                        label="What's the thumbnail about?"
                         placeholder="e.g. Street biryani review at Sree Annapoorna"
                         value={idea}
                         onChange={setIdea}
@@ -685,7 +659,7 @@ export default function App() {
                                 >⟳</motion.span>
                                 Generating...
                             </span>
-                        ) : '✨ Generate Optimized Reel'}
+                        ) : '✨ Generate Optimized Thumbnail'}
                     </motion.button>
 
                     {/* Divider */}
@@ -728,14 +702,21 @@ export default function App() {
 
                     <ReelPhonePreview imageUrl={result?.imageUrl} loading={loading} />
 
+                    {/* Download Button moved ABOVE the song for clear clicking */}
+                    {result?.imageUrl && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                            <DownloadButton imageUrl={result.imageUrl} idea="thumbnail" />
+                        </motion.div>
+                    )}
+
                     {result?.song && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
                             style={{ width: '100%', maxWidth: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
                         >
                             <SongCard song={result.song} />
-                            <DownloadButton imageUrl={result.imageUrl} idea="reel" />
                         </motion.div>
                     )}
 
@@ -745,7 +726,7 @@ export default function App() {
                             animate={{ opacity: 1 }}
                             style={{ fontSize: 12, color: '#2a2a2a', textAlign: 'center', maxWidth: 200 }}
                         >
-                            Fill in your reel brief and hit generate to preview your AI-optimized reel
+                            Fill in your brief and hit generate to preview your AI-optimized thumbnail
                         </motion.p>
                     )}
                 </main>
