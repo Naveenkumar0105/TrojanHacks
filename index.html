@@ -12,8 +12,8 @@
 <body>
   <div id="app" class="app-container">
     <header class="header">
-      <h1>Presaige API Tester</h1>
-      <p class="subtitle">Test the Score and Recommendations API visually</p>
+      <h1>AI Reel Optimizer</h1>
+      <p class="subtitle">Location & Audience targeted AI Reels with Presaige Scoring</p>
     </header>
 
     <div class="config-panel glass-panel">
@@ -31,36 +31,49 @@
 
     <div class="main-content">
       <div class="test-panel glass-panel">
-        <div class="tabs">
-          <button class="tab active" data-tab="score">Score API</button>
-          <button class="tab" data-tab="recommendations">Recommendations API</button>
+        <h2>Content Details</h2>
+        <div class="input-group">
+          <label for="reelIdea">What is your Reel Idea?</label>
+          <input type="text" id="reelIdea" placeholder="e.g. A quick surfing transition edit" />
         </div>
 
-        <div class="upload-area" id="dropZone">
-          <div class="upload-content">
-            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-            <p>Drag & Drop an image or video</p>
-            <p class="upload-subtext">or click to browse</p>
-          </div>
-          <input type="file" id="mediaInput" accept="image/*,video/*" class="hidden-input" />
-          <img id="previewImage" class="preview-media hidden" />
-          <video id="previewVideo" class="preview-media hidden" controls></video>
+        <div class="input-group">
+          <label for="reelLocation">Target Location</label>
+          <input type="text" id="reelLocation" placeholder="e.g. Huntington Beach, California" />
+        </div>
+
+        <div class="input-group">
+          <label for="reelAudience">Target Audience</label>
+          <input type="text" id="reelAudience" placeholder="e.g. Teenagers and Surfers" />
         </div>
 
         <button id="testBtn" class="primary-btn pulse-animation">
-          <span class="btn-text">Test Score API</span>
+          <span class="btn-text">Generate Optimized Reel & Score</span>
           <span class="loader hidden"></span>
         </button>
       </div>
 
       <div class="result-panel glass-panel">
-        <h2>Response</h2>
-        <div class="result-status">Waiting for test...</div>
+        <h2>Generated Output</h2>
+        <div class="result-status">Waiting for input...</div>
+
+        <div id="aiOutputs" class="hidden">
+          <div class="output-section">
+            <h3>🎵 Recommended Audio</h3>
+            <p id="songResult" class="text-res"></p>
+          </div>
+          <div class="output-section">
+            <h3>🖼️ Generated Thumbnail</h3>
+            <img id="thumbResult" class="generated-thumb" />
+          </div>
+        </div>
+
         <div id="beautifiedResult" class="beautified-result hidden"></div>
-        <pre id="resultJson" class="json-viewer"></pre>
+
+        <details class="advanced-details hidden" id="rawOutputDetails">
+          <summary>View Raw JSON</summary>
+          <pre id="resultJson" class="json-viewer"></pre>
+        </details>
       </div>
     </div>
   </div>

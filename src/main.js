@@ -1,113 +1,44 @@
-const tabs = document.querySelectorAll('.tab');
 const testBtn = document.getElementById('testBtn');
 const btnText = document.querySelector('.btn-text');
 const loader = document.querySelector('.loader');
-const dropZone = document.getElementById('dropZone');
-const mediaInput = document.getElementById('mediaInput');
-const uploadContent = document.querySelector('.upload-content');
-const previewImage = document.getElementById('previewImage');
-const previewVideo = document.getElementById('previewVideo');
-const resultJson = document.getElementById('resultJson');
+
+const reelIdeaInput = document.getElementById('reelIdea');
+const reelLocationInput = document.getElementById('reelLocation');
+const reelAudienceInput = document.getElementById('reelAudience');
+
+const aiOutputs = document.getElementById('aiOutputs');
+const songResult = document.getElementById('songResult');
+const thumbResult = document.getElementById('thumbResult');
+
 const beautifiedResult = document.getElementById('beautifiedResult');
+const rawOutputDetails = document.getElementById('rawOutputDetails');
+const resultJson = document.getElementById('resultJson');
 const resultStatus = document.querySelector('.result-status');
 
 // API Base URL (Point to our new local proxy server)
-const API_BASE = 'http://localhost:3000/api/proxy';
-
-let currentMode = 'score'; // 'score' or 'recommendations'
-let selectedFile = null;
-
-// Tab Switching logic
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    tabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentMode = tab.dataset.tab;
-
-    // Update Button Text
-    btnText.textContent = `Test ${currentMode === 'score' ? 'Score' : 'Recommendations'} API`;
-
-    // Suggest default endpoint in placeholder
-    document.getElementById('endpointUrl').placeholder = `${API_BASE} (Leave blank for default)`;
-  });
-});
-
-// Drag & Drop logic
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, preventDefaults, false);
-});
-
-function preventDefaults(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-['dragenter', 'dragover'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-});
-
-dropZone.addEventListener('drop', handleDrop, false);
-dropZone.addEventListener('click', () => mediaInput.click());
-mediaInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-function handleDrop(e) {
-  const dt = e.dataTransfer;
-  const files = dt.files;
-  handleFiles(files);
-}
-
-function handleFiles(files) {
-  if (files.length === 0) return;
-  selectedFile = files[0];
-
-  const fileUrl = URL.createObjectURL(selectedFile);
-
-  uploadContent.classList.add('hidden');
-
-  if (selectedFile.type.startsWith('video/')) {
-    previewImage.classList.add('hidden');
-    previewVideo.src = fileUrl;
-    previewVideo.classList.remove('hidden');
-  } else {
-    previewVideo.classList.add('hidden');
-    previewImage.src = fileUrl;
-    previewImage.classList.remove('hidden');
-  }
-}
+const API_BASE = 'http://localhost:3000/api';
 
 // Ensure the json string is pretty printed
 function prettyPrintJson(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
+// Attach the main flow to the test button
+testBtn.addEventListener('click', runMainFlow);
+
 // Main Test Function
 async function runMainFlow() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const customBase = document.getElementById('endpointUrl').value.trim();
-  const apiBase = customBase || API_BASE;
-  const originalBtnText = btnText.textContent;
+  const proxyBase = customBase || API_BASE;
 
-  if (!apiKey) {
-    showError("Please enter your Presaige API Key.");
+  const idea = reelIdeaInput.value;
+  const location = reelLocationInput.value;
+  const audience = reelAudienceInput.value;
+
+  if (!idea || !location || !audience) {
+    showError("Please fill in Idea, Location, and Audience.");
     return;
-  }
-
-  if (!selectedFile) {
-    try {
-      resultStatus.textContent = "Auto-loading test_image.jpg for demo...";
-      const response = await fetch('/test_image.jpg');
-      const blob = await response.blob();
-      selectedFile = new File([blob], "test_image.jpg", { type: "image/jpeg" });
-      handleFiles([selectedFile]);
-    } catch (err) {
-      console.error("Auto-load failed", err);
-      showError("Please select an image or video file.");
-      return;
-    }
   }
 
   // Update UI to loading
@@ -115,69 +46,52 @@ async function runMainFlow() {
 
   try {
     beautifiedResult.classList.add('hidden');
-    resultJson.classList.remove('hidden');
+    aiOutputs.classList.add('hidden');
+    rawOutputDetails.classList.add('hidden');
 
-    // === Step 1: Request Upload URL ===
-    resultStatus.textContent = `Requesting pre-signed upload URL from ${apiBase}/upload...`;
+    // === Step 1: AI Brainstorming & Generation ===
+    resultStatus.textContent = `Brainstorming with Gemini & Generative AI...`;
     resultStatus.className = 'result-status';
-    resultJson.textContent = 'Starting process...';
+    resultJson.textContent = 'Generating...';
 
-    const uploadResponse = await fetch(`${apiBase}/upload`, {
+    const generateResponse = await fetch(`${proxyBase}/generate-reel`, {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        filename: selectedFile.name,
-        content_type: selectedFile.type
+        idea,
+        location,
+        audience,
+        presaigeKey: apiKey
       })
     });
 
-    if (!uploadResponse.ok) {
-      let errBody = await uploadResponse.text().catch(() => "");
-      throw new Error(`Failed to get upload URL: ${uploadResponse.status} ${errBody}`);
+    if (!generateResponse.ok) {
+      let errBody = await generateResponse.text().catch(() => "");
+      throw new Error(`AI Pipeline failed: ${generateResponse.status} ${errBody}`);
     }
 
-    const uploadData = await uploadResponse.json();
-    const assetKey = uploadData.asset_key;
-    const uploadUrl = uploadData.upload_url;
+    const genData = await generateResponse.json();
 
-    if (!assetKey || !uploadUrl) {
-      throw new Error("API succeeded but did not return 'asset_key' or 'upload_url'.");
+    // Display the outputs
+    songResult.textContent = genData.song_recommendation;
+    thumbResult.src = genData.image_url;
+    aiOutputs.classList.remove('hidden');
+
+    const assetKey = genData.presaige_asset_key;
+    let progressLog = `[Step 1: AI Generated Reel Content]\n`;
+
+    if (!assetKey) {
+      showSuccess(`AI Reel Generated! (Presaige upload skipped or failed)`);
+      resultJson.textContent = progressLog + `\n` + prettyPrintJson(genData);
+      rawOutputDetails.classList.remove('hidden');
+      return;
     }
 
-    let progressLog = `[Step 1: Upload URL Generated] Asset Key: ${assetKey}\n`;
-    resultJson.textContent = progressLog;
-
-    // === Step 2: PUT file to S3/CloudFront ===
-    resultStatus.textContent = `Uploading actual file to CloudFront/S3...`;
-    progressLog += `[Step 2: Uploading File] Uploading...`;
-    resultJson.textContent = progressLog;
-
-    const s3Response = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": selectedFile.type
-      },
-      body: selectedFile // Send the raw file blob
-    });
-
-    if (!s3Response.ok) {
-      let errBody = await s3Response.text().catch(() => "");
-      throw new Error(`S3/CloudFront PUT Upload failed: ${s3Response.status} ${errBody}`);
-    }
-
-    progressLog += ` Success!\n`;
-    resultJson.textContent = progressLog;
-
-    // === Step 3: Submit Job ===
-    const jobEndpoint = `${apiBase}/${currentMode}`;
-    resultStatus.textContent = `Submitting ${currentMode} job...`;
-
-    const jobPayload = currentMode === 'score'
-      ? { asset_key: assetKey, extended: true }
-      : { asset_key: assetKey };
+    // === Step 2: Submit Presaige Score Job ===
+    const jobEndpoint = `${proxyBase}/proxy/score`;
+    resultStatus.textContent = `Submitting Presaige Score job for new thumbnail...`;
 
     const jobResponse = await fetch(jobEndpoint, {
       method: 'POST',
@@ -185,58 +99,54 @@ async function runMainFlow() {
         'x-api-key': apiKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(jobPayload)
+      body: JSON.stringify({ asset_key: assetKey, extended: true })
     });
 
     if (!jobResponse.ok) {
       let errBody = await jobResponse.text().catch(() => "");
-      throw new Error(`Job submission failed: ${jobResponse.status} ${jobResponse.statusText} ${errBody}`);
+      throw new Error(`Presaige Job submission failed: ${jobResponse.status} ${errBody}`);
     }
 
     const jobData = await jobResponse.json();
     const jobId = jobData.job_id;
     const pollUrlPath = jobData.poll_url;
 
-    progressLog += `\n[Step 3: Job Submitted] Job ID: ${jobId}, Status: ${jobData.status}\n`;
+    progressLog += `\n[Step 2: Presaige Score Job Submitted] Job ID: ${jobId}\n`;
     resultJson.textContent = progressLog;
 
     if (!pollUrlPath) {
-      showSuccess(`Job submitted but no poll_url returned. Final response below.`);
+      showSuccess(`Score Job submitted but no poll_url returned.`);
       resultJson.textContent = progressLog + `\n` + prettyPrintJson(jobData);
+      rawOutputDetails.classList.remove('hidden');
       return;
     }
 
-    // === Step 4: Polling ===
-    resultStatus.textContent = `Polling for results...`;
+    // === Step 3: Polling ===
+    resultStatus.textContent = `Scoring Image...`;
 
-    // Construct valid poll URL to hit our proxy system
-    // The Presaige API either returns a full url like https://api... or a relative path /score/xxx
-    // We pass that downstream path/URL to our proxy under /api/proxy/poll/<rest-of-url>
     let proxyPollPath = pollUrlPath.startsWith('/') ? pollUrlPath.substring(1) : pollUrlPath;
-    const pollEndpoint = `${apiBase}/poll/${proxyPollPath}`;
+    const pollEndpoint = `${proxyBase}/proxy/poll/${proxyPollPath}`;
 
     let isCompleted = false;
     let finalData = null;
     let attempts = 0;
-    const maxAttempts = 40; // max wait: 40 * 2s = 80s
+    const maxAttempts = 40; // 80s max
 
     while (!isCompleted && attempts < maxAttempts) {
       attempts++;
-      await new Promise(r => setTimeout(r, 2000)); // wait 2 seconds
+      await new Promise(r => setTimeout(r, 2000));
 
-      resultStatus.textContent = `Polling for results... (Attempt ${attempts})`;
-      progressLog += `\n[Polling Attempt ${attempts}]... checking status...`;
+      resultStatus.textContent = `Analyzing Thumbnail... (Attempt ${attempts})`;
+      progressLog += `\n[Polling ${attempts}]... checking status...`;
       resultJson.textContent = progressLog;
 
       const pollResponse = await fetch(pollEndpoint, {
         method: 'GET',
-        headers: {
-          'x-api-key': apiKey
-        }
+        headers: { 'x-api-key': apiKey }
       });
 
       if (!pollResponse.ok) {
-        throw new Error(`Polling failed: ${pollResponse.status} ${pollResponse.statusText}`);
+        throw new Error(`Polling failed: ${pollResponse.status}`);
       }
 
       finalData = await pollResponse.json();
@@ -250,15 +160,17 @@ async function runMainFlow() {
       resultJson.textContent = progressLog;
     }
 
+    rawOutputDetails.classList.remove('hidden');
+
     if (finalData && (finalData.status === 'completed' || finalData.status === 'complete')) {
-      showSuccess(`Job ${finalData.status} successfully!`);
+      showSuccess(`Reel Successfully Optimized!`);
       renderBeautifiedResult(finalData);
       resultJson.textContent = progressLog + `\n\n--- RAW JSON RESULT ---\n` + prettyPrintJson(finalData);
     } else if (finalData && finalData.status === 'failed') {
-      showError(`Job Failed.`);
+      showError(`Score Job Failed.`);
       resultJson.textContent = progressLog + `\n\n--- FAILURE RESULT ---\n` + prettyPrintJson(finalData);
     } else {
-      showError(`Polling timed out after 80 seconds.`);
+      showError(`Scoring timed out after 80 seconds.`);
       resultJson.textContent = progressLog + `\n\n--- TIMEOUT DATA ---\n` + (finalData ? prettyPrintJson(finalData) : 'Timeout elapsed with no data.');
     }
 
