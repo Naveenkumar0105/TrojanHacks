@@ -312,7 +312,7 @@ Output your response strictly as a JSON object with exactly two keys: "song_reco
         if (!imageGenSuccess) {
             try {
                 const encodedPrompt = encodeURIComponent(thumbnail_prompt.substring(0, 400));
-                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true&model=flux`;
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true`;
                 const polRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(20000) });
                 if (polRes.ok && polRes.headers.get('content-type')?.includes('image')) {
                     imageBuffer = Buffer.from(await polRes.arrayBuffer());
@@ -335,7 +335,10 @@ Output your response strictly as a JSON object with exactly two keys: "song_reco
                     'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0',
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(HF_TOKEN ? { 'Authorization': `Bearer ${HF_TOKEN}` } : {})
+                        },
                         body: JSON.stringify({ inputs: thumbnail_prompt.substring(0, 500) }),
                         signal: AbortSignal.timeout(30000)
                     }
@@ -509,14 +512,16 @@ app.post('/api/get-recommendations', async (req, res) => {
             const pollData = await pollRes.json();
             if (pollData.status === 'complete') {
                 console.log('✅ Presaige recommendations complete');
-                return res.json({ recommendations: pollData.result || {} });
+                return res.json({ recommendations: pollData.actionable_feedback || pollData.result || {} });
             }
             if (pollData.status === 'failed') {
-                throw new Error('Presaige failed to generate recommendations for this image.');
+                console.warn('⚠️ Presaige failed to generate recommendations for this image. Falling back to frontend defaults.');
+                return res.json({ recommendations: {} });
             }
             attempts++;
         }
-        res.status(504).json({ error: 'Recommendations polling timed out.' });
+        console.warn('⚠️ Recommendations polling timed out. Falling back to frontend defaults.');
+        return res.json({ recommendations: {} });
 
     } catch (error) {
         console.error('Recommendations Error:', error);
@@ -555,27 +560,38 @@ INSTRUCTIONS:
         let optimizedPrompt = '';
         let promptSuccess = false;
 
-        // Try using Gemini to rewrite the prompt
+        // Try using Gemini to rewrite the prompt with fallback
         if (geminiClients.length > 0) {
-            for (const client of geminiClients) {
-                try {
-                    const llmResponse = await client.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: `Rewrite the image generation prompt to fix the flaws.`,
-                        config: { systemInstruction }
-                    });
-                    optimizedPrompt = llmResponse.text.trim();
-                    promptSuccess = true;
-                    console.log('✅ Gemini Rewrote Prompt:', optimizedPrompt);
-                    break;
-                } catch (e) {
-                    console.warn('⚠️ Gemini prompt rewrite failed, trying next key...', e.message);
+            const modelsToTry = [
+                'gemini-2.5-flash',
+                'gemini-2.5-flash-lite',
+                'gemini-2.0-flash',
+                'gemini-2.0-flash-lite'
+            ];
+
+            outerLoop:
+            for (let keyIdx = 0; keyIdx < geminiClients.length; keyIdx++) {
+                const client = geminiClients[keyIdx];
+                for (const model of modelsToTry) {
+                    try {
+                        const llmResponse = await client.models.generateContent({
+                            model,
+                            contents: `Rewrite the image generation prompt to fix the flaws.`,
+                            config: { systemInstruction }
+                        });
+                        optimizedPrompt = llmResponse.text.trim();
+                        promptSuccess = true;
+                        console.log(`✅ Gemini Rewrote Prompt using ${model}:`, optimizedPrompt);
+                        break outerLoop;
+                    } catch (e) {
+                        console.warn(`⚠️ ${model} refine failed, trying next...`);
+                    }
                 }
             }
         }
 
         if (!promptSuccess) {
-            return res.status(500).json({ error: 'Failed to rewrite prompt using Gemini' });
+            return res.status(500).json({ error: 'All Gemini API keys and models exhausted quota' });
         }
 
         // ── STEP B: Generate the new Image ──────────────────────────────────────
@@ -617,7 +633,7 @@ INSTRUCTIONS:
         if (!imageGenSuccess) {
             try {
                 const encodedPrompt = encodeURIComponent(optimizedPrompt.substring(0, 400));
-                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true&model=flux`;
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true`;
                 const polRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(20000) });
                 if (polRes.ok && polRes.headers.get('content-type')?.includes('image')) {
                     imageBuffer = Buffer.from(await polRes.arrayBuffer());
@@ -637,7 +653,10 @@ INSTRUCTIONS:
                     'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0',
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(HF_TOKEN ? { 'Authorization': `Bearer ${HF_TOKEN}` } : {})
+                        },
                         body: JSON.stringify({ inputs: optimizedPrompt.substring(0, 500) }),
                         signal: AbortSignal.timeout(30000)
                     }
