@@ -4,80 +4,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Presaige API Tester</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css" />
+  <title>ReelAI — AI Reel Optimizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
 </head>
 
 <body>
-  <div id="app" class="app-container">
-    <header class="header">
-      <h1>AI Reel Optimizer</h1>
-      <p class="subtitle">Location & Audience targeted AI Reels with Presaige Scoring</p>
-    </header>
-
-    <div class="config-panel glass-panel">
-      <h2>Configuration</h2>
-      <div class="input-group">
-        <label for="apiKey">API Key (Hardcoded)</label>
-        <input type="password" id="apiKey" value="M5Q4wfHkDE1W8vxRRzsHp23iBbBBL3M7s4jHssw7"
-          placeholder="Enter your Presaige API Key" autocomplete="off" />
-      </div>
-      <div class="input-group">
-        <label for="endpointUrl">API Base URL (Optional Override)</label>
-        <input type="text" id="endpointUrl" placeholder="https://api.presaige.ai/v1 (Leave blank for default)" />
-      </div>
-    </div>
-
-    <div class="main-content">
-      <div class="test-panel glass-panel">
-        <h2>Content Details</h2>
-        <div class="input-group">
-          <label for="reelIdea">What is your Reel Idea?</label>
-          <input type="text" id="reelIdea" placeholder="e.g. A quick surfing transition edit" />
-        </div>
-
-        <div class="input-group">
-          <label for="reelLocation">Target Location</label>
-          <input type="text" id="reelLocation" placeholder="e.g. Huntington Beach, California" />
-        </div>
-
-        <div class="input-group">
-          <label for="reelAudience">Target Audience</label>
-          <input type="text" id="reelAudience" placeholder="e.g. Teenagers and Surfers" />
-        </div>
-
-        <button id="testBtn" class="primary-btn pulse-animation">
-          <span class="btn-text">Generate Optimized Reel & Score</span>
-          <span class="loader hidden"></span>
-        </button>
-      </div>
-
-      <div class="result-panel glass-panel">
-        <h2>Generated Output</h2>
-        <div class="result-status">Waiting for input...</div>
-
-        <div id="aiOutputs" class="hidden">
-          <div class="output-section">
-            <h3>🎵 Recommended Audio</h3>
-            <p id="songResult" class="text-res"></p>
-          </div>
-          <div class="output-section">
-            <h3>🖼️ Generated Thumbnail</h3>
-            <img id="thumbResult" class="generated-thumb" />
-          </div>
-        </div>
-
-        <div id="beautifiedResult" class="beautified-result hidden"></div>
-
-        <details class="advanced-details hidden" id="rawOutputDetails">
-          <summary>View Raw JSON</summary>
-          <pre id="resultJson" class="json-viewer"></pre>
-        </details>
-      </div>
-    </div>
-  </div>
-  <script type="module" src="/src/main.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 
 </html>

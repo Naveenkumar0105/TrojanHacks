@@ -74,8 +74,33 @@ async function runMainFlow() {
 
     const genData = await generateResponse.json();
 
-    // Display the outputs
-    songResult.textContent = genData.song_recommendation;
+    // Parse and display song recommendation
+    // Format: "Song Title - Artist Name (Language) — reason"
+    const songRaw = genData.song_recommendation || '';
+    const [songPart, reasonPart] = songRaw.split(' — ');
+    const dashIdx = songPart ? songPart.lastIndexOf(' - ') : -1;
+    const songNameEl = document.getElementById('songName');
+    const songArtistEl = document.getElementById('songArtist');
+    const songReasonEl = document.getElementById('songReason');
+    const whyTrigger = document.getElementById('whyTrigger');
+    const whyTooltip = document.getElementById('whyTooltip');
+
+    if (dashIdx !== -1) {
+      songNameEl.textContent = songPart.substring(0, dashIdx).trim();
+      songArtistEl.textContent = songPart.substring(dashIdx + 3).trim();
+    } else {
+      songNameEl.textContent = songRaw;
+      songArtistEl.textContent = '';
+    }
+    songReasonEl.textContent = reasonPart || 'This song was chosen for its great match with your reel mood.';
+
+    // Toggle the reason panel on click
+    whyTrigger.addEventListener('click', () => {
+      const isOpen = whyTooltip.classList.contains('open');
+      whyTooltip.classList.toggle('open', !isOpen);
+      whyTrigger.classList.toggle('active', !isOpen);
+    });
+
     thumbResult.src = genData.image_url;
     aiOutputs.classList.remove('hidden');
 

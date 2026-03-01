@@ -399,6 +399,116 @@ input[type="password"]:focus {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Song Card Styles */
+.song-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.song-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.song-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.song-artist {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+/* Why Trigger Button */
+.why-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  border: 1px dashed rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.06);
+  width: fit-content;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.why-trigger:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.2);
+}
+
+.why-trigger.active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent-color);
+  border-style: solid;
+}
+
+.why-icon {
+  font-size: 0.85rem;
+  transition: transform 0.3s ease;
+}
+
+.why-trigger.active .why-icon {
+  transform: rotate(20deg) scale(1.2);
+}
+
+.why-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-color);
+  letter-spacing: 0.02em;
+}
+
+/* Animated Reveal Panel */
+.why-tooltip {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease,
+    margin-top 0.3s ease;
+  margin-top: 0;
+}
+
+.why-tooltip.open {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 0.6rem;
+}
+
+.why-content {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.06));
+  border-left: 3px solid var(--accent-color);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  animation: slideInLeft 0.35s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 details.advanced-details {
   margin-top: 2rem;
   border-top: 1px dashed var(--panel-border);

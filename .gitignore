@@ -1,2 +1,11 @@
 node_modules/
 .env
+.DS_Store
+
+# Generated thumbnail images (runtime output, not source code)
+public/thumbnails/
+
+# Test/scratch scripts
+test-keys.mjs
+test-keys2.mjs
+test_res.json

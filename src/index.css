@@ -1,0 +1,48 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #080808;
+    --surface: #101010;
+    --surface2: #181818;
+    --border: rgba(255, 255, 255, 0.07);
+    --ig-orange: #F58529;
+    --ig-pink: #DD2A7B;
+    --ig-purple: #8134AF;
+    --ig-blue: #515BD4;
+    --ig-grad: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF, #515BD4);
+    --text-primary: #F5F5F5;
+    --text-secondary: #888;
+    --text-muted: #444;
+    --radius: 14px;
+    --font: 'Inter', sans-serif;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
