@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presaige API Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <div id="app" class="app-container">
+    <header class="header">
+      <h1>Presaige API Tester</h1>
+      <p class="subtitle">Test the Score and Recommendations API visually</p>
+    </header>
+
+    <div class="config-panel glass-panel">
+      <h2>Configuration</h2>
+      <div class="input-group">
+        <label for="apiKey">API Key (Hardcoded)</label>
+        <input type="password" id="apiKey" value="M5Q4wfHkDE1W8vxRRzsHp23iBbBBL3M7s4jHssw7"
+          placeholder="Enter your Presaige API Key" autocomplete="off" />
+      </div>
+      <div class="input-group">
+        <label for="endpointUrl">API Base URL (Optional Override)</label>
+        <input type="text" id="endpointUrl" placeholder="https://api.presaige.ai/v1 (Leave blank for default)" />
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="test-panel glass-panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="score">Score API</button>
+          <button class="tab" data-tab="recommendations">Recommendations API</button>
+        </div>
+
+        <div class="upload-area" id="dropZone">
+          <div class="upload-content">
+            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <p>Drag & Drop an image or video</p>
+            <p class="upload-subtext">or click to browse</p>
+          </div>
+          <input type="file" id="mediaInput" accept="image/*,video/*" class="hidden-input" />
+          <img id="previewImage" class="preview-media hidden" />
+          <video id="previewVideo" class="preview-media hidden" controls></video>
+        </div>
+
+        <button id="testBtn" class="primary-btn pulse-animation">
+          <span class="btn-text">Test Score API</span>
+          <span class="loader hidden"></span>
+        </button>
+      </div>
+
+      <div class="result-panel glass-panel">
+        <h2>Response</h2>
+        <div class="result-status">Waiting for test...</div>
+        <div id="beautifiedResult" class="beautified-result hidden"></div>
+        <pre id="resultJson" class="json-viewer"></pre>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
